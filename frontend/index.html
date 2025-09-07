@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .upload-box {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input[type="file"] {
+      padding: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #0078ff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #005fcc;
+    }
+    .preview {
+      text-align: center;
+      margin-top: 15px;
+    }
+    .preview img {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-top: 10px;
+    }
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: scale(1.03);
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .card-body {
+      padding: 10px;
+    }
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .price {
+      color: green;
+      font-size: 14px;
+    }
+    .rating {
+      font-size: 13px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Visual Product Search</h1>
+
+  <div class="upload-box">
+    <input type="file" id="fileInput" accept="image/*" onchange="previewImage(event)" />
+    <div class="preview" id="preview"></div>
+    <button onclick="searchProducts()">Search</button>
+  </div>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    function previewImage(event) {
+      const previewDiv = document.getElementById("preview");
+      previewDiv.innerHTML = "";
+
+      const file = event.target.files[0];
+      if (file) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        previewDiv.appendChild(img);
+      }
+    }
+
+    async function searchProducts() {
+      const fileInput = document.getElementById("fileInput");
+      if (!fileInput.files.length) {
+        alert("Please select an image!");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/search", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = "";
+
+        data.results.forEach(product => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.onclick = () => window.open(product.page_url, "_blank");
+
+          card.innerHTML = `
+            <img src="${product.image_url}" alt="Product Image" />
+            <div class="card-body">
+              <div class="title">${product.title || "No Title"}</div>
+              <div class="price">₹${product.discounted_price || "N/A"}</div>
+              <div class="rating">⭐ ${product.rating || 0} (${product.total_reviews || 0} reviews)</div>
+            </div>
+          `;
+          resultsDiv.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Error fetching results.");
+      }
+    }
+  </script>
+</body>
+</html>
